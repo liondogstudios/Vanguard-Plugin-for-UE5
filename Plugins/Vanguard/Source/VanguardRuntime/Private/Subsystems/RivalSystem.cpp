@@ -3,6 +3,7 @@
 #include "Components/RivalProfileComponent.h"
 #include "Components/FactionAffiliationComponent.h"
 #include "Data/FactionArchetype.h"
+#include "Save/RivalSaveGame.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/World.h"
 
@@ -241,17 +242,145 @@ float URivalSystem::GetFactionHostility(const FGameplayTag& FactionA, const FGam
 
 bool URivalSystem::SaveRivalSystemState(const FString& SlotName)
 {
-	// This will be implemented when we create the RivalSaveGame class
-	UE_LOG(LogVanguard, Log, TEXT("Saving rival system state to slot: %s"), *SlotName);
-	AddEventToHistory(FString::Printf(TEXT("Saved system state to slot: %s"), *SlotName));
-	return true;
+	URivalSaveGame* SaveGame = Cast<URivalSaveGame>(UGameplayStatics::CreateSaveGameObject(URivalSaveGame::StaticClass()));
+	if (!SaveGame)
+	{
+		UE_LOG(LogVanguard, Error, TEXT("Failed to create save game object"));
+		return false;
+	}
+	
+	// Set basic save data
+	SaveGame->SaveTimestamp = FDateTime::Now();
+	SaveGame->SchemaVersion = 1;
+	
+	// Save rival data
+	for (const auto& Pair : RivalRegistry)
+	{
+		const FRivalRegistryEntry& Entry = Pair.Value;
+		FRivalSaveData RivalData;
+		
+		RivalData.RivalId = Entry.RivalId;
+		RivalData.Traits = Entry.Traits;
+		RivalData.Notoriety = Entry.Notoriety;
+		RivalData.LastKnownLocation = Entry.LastKnownLocation;
+		RivalData.CurrentFaction = Entry.FactionTag;
+		
+		// Get additional data from live actor if available
+		if (Entry.LiveActor.IsValid())
+		{
+			if (URivalProfileComponent* ProfileComp = Entry.LiveActor->FindComponentByClass<URivalProfileComponent>())
+			{
+				RivalData.PlayerKills = ProfileComp->PlayerKills;
+				RivalData.DeathCount = ProfileComp->DeathCount;
+				RivalData.EscapeCount = ProfileComp->EscapeCount;
+				RivalData.Injuries = ProfileComp->Injuries;
+				RivalData.ObservedPlayerTactics = ProfileComp->ObservedPlayerTactics;
+				RivalData.PreferredTactics = ProfileComp->PreferredTactics;
+				RivalData.VendettaLevel = ProfileComp->VendettaLevel;
+				RivalData.FearLevel = ProfileComp->FearLevel;
+				RivalData.AdmirationLevel = ProfileComp->AdmirationLevel;
+			}
+		}
+		
+		SaveGame->AddRivalData(RivalData);
+	}
+	
+	// Save faction data
+	for (const auto& Pair : FactionReputations)
+	{
+		FFactionSaveData FactionData;
+		FactionData.FactionTag = Pair.Key;
+		FactionData.PlayerReputation = Pair.Value;
+		
+		// Add hostility data if available
+		if (const TMap<FGameplayTag, float>* HostilityMap = FactionHostilities.Find(Pair.Key))
+		{
+			FactionData.HostilityMatrix = *HostilityMap;
+		}
+		
+		SaveGame->AddFactionData(FactionData);
+	}
+	
+	// Save recent events
+	SaveGame->RecentEvents = GetRecentEvents(100);
+	
+	// Save to file
+	bool bSuccess = UGameplayStatics::SaveGameToSlot(SaveGame, SlotName, 0);
+	
+	UE_LOG(LogVanguard, Log, TEXT("Saving rival system state to slot %s: %s"), 
+		   *SlotName, bSuccess ? TEXT("SUCCESS") : TEXT("FAILED"));
+	
+	AddEventToHistory(FString::Printf(TEXT("Saved system state to slot: %s (%s)"), 
+		*SlotName, bSuccess ? TEXT("SUCCESS") : TEXT("FAILED")));
+	
+	return bSuccess;
 }
 
 bool URivalSystem::LoadRivalSystemState(const FString& SlotName)
 {
-	// This will be implemented when we create the RivalSaveGame class
-	UE_LOG(LogVanguard, Log, TEXT("Loading rival system state from slot: %s"), *SlotName);
-	AddEventToHistory(FString::Printf(TEXT("Loaded system state from slot: %s"), *SlotName));
+	if (!UGameplayStatics::DoesSaveGameExist(SlotName, 0))
+	{
+		UE_LOG(LogVanguard, Warning, TEXT("Save game slot %s does not exist"), *SlotName);
+		return false;
+	}
+	
+	URivalSaveGame* SaveGame = Cast<URivalSaveGame>(UGameplayStatics::LoadGameFromSlot(SlotName, 0));
+	if (!SaveGame)
+	{
+		UE_LOG(LogVanguard, Error, TEXT("Failed to load save game from slot %s"), *SlotName);
+		return false;
+	}
+	
+	// Validate save data
+	if (!SaveGame->ValidateSaveData())
+	{
+		UE_LOG(LogVanguard, Error, TEXT("Save data validation failed for slot %s"), *SlotName);
+		return false;
+	}
+	
+	// Migrate save data if needed
+	SaveGame->MigrateSaveData(SaveGame->SchemaVersion);
+	
+	// Clear existing data
+	RivalRegistry.Empty();
+	FactionReputations.Empty();
+	FactionHostilities.Empty();
+	
+	// Load rival data
+	for (const FRivalSaveData& RivalData : SaveGame->RivalData)
+	{
+		FRivalRegistryEntry Entry;
+		Entry.RivalId = RivalData.RivalId;
+		Entry.Traits = RivalData.Traits;
+		Entry.Notoriety = RivalData.Notoriety;
+		Entry.LastKnownLocation = RivalData.LastKnownLocation;
+		Entry.FactionTag = RivalData.CurrentFaction;
+		// LiveActor will be null until the rival is spawned again
+		
+		RivalRegistry.Add(Entry.RivalId, Entry);
+	}
+	
+	// Load faction data
+	for (const FFactionSaveData& FactionData : SaveGame->FactionData)
+	{
+		FactionReputations.Add(FactionData.FactionTag, FactionData.PlayerReputation);
+		
+		if (FactionData.HostilityMatrix.Num() > 0)
+		{
+			FactionHostilities.Add(FactionData.FactionTag, FactionData.HostilityMatrix);
+		}
+	}
+	
+	// Load event history
+	EventHistory.Empty();
+	EventHistory.Append(SaveGame->RecentEvents);
+	
+	UE_LOG(LogVanguard, Log, TEXT("Loaded rival system state from slot %s: %d rivals, %d factions"), 
+		   *SlotName, SaveGame->GetRivalCount(), SaveGame->GetFactionCount());
+	
+	AddEventToHistory(FString::Printf(TEXT("Loaded system state from slot: %s (%d rivals, %d factions)"), 
+		*SlotName, SaveGame->GetRivalCount(), SaveGame->GetFactionCount()));
+	
 	return true;
 }
 
