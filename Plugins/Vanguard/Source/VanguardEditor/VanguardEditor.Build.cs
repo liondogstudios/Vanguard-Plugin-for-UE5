@@ -17,7 +17,6 @@ public class VanguardEditor : ModuleRules
 				"UnrealEd",
 				"ToolMenus",
 				"EditorWidgets",
-				"EditorWidgets",
 				"Slate",
 				"SlateCore",
 				"PropertyEditor",

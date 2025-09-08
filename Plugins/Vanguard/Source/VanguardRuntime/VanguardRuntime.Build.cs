@@ -44,7 +44,6 @@ public class VanguardRuntime : ModuleRules
 				"Slate",
 				"SlateCore",
 				"EditorWidgets",
-				"EditorWidgets",
 				"UnrealEd",
 				"ToolMenus",
 				"PropertyEditor",
