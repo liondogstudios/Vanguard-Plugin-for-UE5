@@ -3,7 +3,7 @@
 	"Version": 1,
 	"VersionName": "1.0",
 	"FriendlyName": "Vanguard",
-	"Description": "A next-gen UE5.4-ready Rivalry & Dynamic Encounter System for story-driven RPGs and action games",
+	"Description": "A next-gen UE5.6-ready Rivalry & Dynamic Encounter System for story-driven RPGs and action games",
 	"Category": "Gameplay",
 	"CreatedBy": "Vanguard Systems",
 	"CreatedByURL": "",
@@ -14,6 +14,7 @@
 	"IsBetaVersion": false,
 	"IsExperimentalVersion": false,
 	"Installed": false,
+	"EngineVersion": "5.6.0",
 	"Modules": [
 		{
 			"Name": "VanguardRuntime",
