@@ -1,6 +1,6 @@
 # VANGUARD - Rivalry & Dynamic Encounter System
 
-A next-generation UE5.4-ready plugin for creating personalized adversaries and dynamic encounters in story-driven RPGs, open-world action-adventure games, and shooters.
+A next-generation UE5.6-ready plugin for creating personalized adversaries and dynamic encounters in story-driven RPGs, open-world action-adventure games, and shooters.
 
 ## Overview
 
