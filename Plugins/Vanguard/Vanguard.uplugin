@@ -33,11 +33,7 @@
 			"Enabled": true
 		},
 		{
-			"Name": "AIModule",
-			"Enabled": true
-		},
-		{
-			"Name": "NavigationSystem",
+			"Name": "AISupport",
 			"Enabled": true
 		},
 		{
