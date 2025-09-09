@@ -28,6 +28,8 @@ public class VanguardEditor : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
+				"GameplayTags",
+				"GameplayTagsEditor",
 				"AssetTools",
 				"AssetRegistry",
 				"KismetCompiler",

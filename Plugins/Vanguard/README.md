@@ -56,7 +56,7 @@ VANGUARD provides a comprehensive system for creating memorable rivals that evol
 
 ### Basic Setup
 
-1. **Enable Required Plugins**: Ensure GameplayAbilities, AISupport, and GameplayTags are enabled
+1. **Enable Required Plugins**: Ensure GameplayAbilities, AIModule, NavigationSystem, and GameplayTags are enabled
 2. **Create Archetypes**: Create your first rival and encounter archetypes as Primary Data Assets
 3. **Setup Gameplay Tags**: Create gameplay tag hierarchies for traits, factions, and encounter types
 4. **Configure AI**: Use VanguardAIController for enhanced AI behavior

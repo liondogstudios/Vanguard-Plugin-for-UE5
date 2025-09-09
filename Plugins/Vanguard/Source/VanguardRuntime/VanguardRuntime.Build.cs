@@ -27,7 +27,8 @@ public class VanguardRuntime : ModuleRules
 				"GameplayTags",
 				"GameplayAbilities",
 				"GameplayTasks",
-				"AISupport",
+				"AIModule",
+				"NavigationSystem",
 				"ToolMenus",
 				"Slate",
 				"SlateCore",
@@ -42,6 +43,7 @@ public class VanguardRuntime : ModuleRules
 			{
 				"Slate",
 				"SlateCore",
+				"EditorStyle",
 				"EditorWidgets",
 				"UnrealEd",
 				"ToolMenus",
